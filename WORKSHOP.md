@@ -57,7 +57,7 @@ pip install -r requirements.txt
 python main.py
 
 # Access the chatbot UI
-# URL: http://localhost:8002
+# URL: http://localhost:8001
 ```
 
 ### Sample Queries to Test
