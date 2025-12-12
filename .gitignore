@@ -63,14 +63,14 @@ out/
 .idea_modules/
 
 # VS Code
-.vscode/
+#.vscode/
 *.code-workspace
 .history/
 *.vsix
 *.vsixmanifest
 .vscode-test/
 .vscode/extensions.json
-.vscode/settings.json
+#.vscode/settings.json
 .vscode/tasks.json
 .vscode/launch.json
 .vscode/extensions.json

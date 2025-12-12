@@ -1,0 +1,29 @@
+{
+    // Configuración de PYTHONPATH para el proyecto
+    // Esto permite importar módulos del proyecto (como 'config') sin configurar sys.path manualmente
+    "python.envFile": "${workspaceFolder}/.env",
+    
+    // Configurar PYTHONPATH en el entorno de Python de VSCode
+    "python.terminal.activateEnvironment": true,
+    
+    // Añadir la raíz del proyecto al PYTHONPATH
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}"
+    ],
+    
+    // Para el terminal integrado, exportar PYTHONPATH automáticamente
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    
+    // Configuración adicional para que funcione en todos los contextos
+    // Usa variable de entorno ${env:HOME} para hacer la ruta más portable
+    // También puedes definir VENV_PATH en tu .env o como variable de entorno del sistema
+    "python.defaultInterpreterPath": "${env:VENV_BASE_PATH}/udacity_langchain_ndg/bin/python",
+    dssasdA
+    // Alternativa: Si defines VENV_PATH en tu .env o como variable de entorno del sistema:
+    // "python.defaultInterpreterPath": "${env:VENV_PATH}/bin/python",
+    
+    // Variables de entorno para el terminal
+    "terminal.integrated.env.linux": {
+        "PYTHONPATH": "${workspaceFolder}"
+    }
+}
