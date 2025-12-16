@@ -1,6 +1,6 @@
 # 📋 TODO - Agentic AI Hospitality PoC
 
-> Last updated: 2025-12-06
+> Last updated: 2025-12-16
 
 ---
 
@@ -8,28 +8,38 @@
 
 | Task | Priority | Started | Notes |
 |------|----------|---------|-------|
-| _No tasks in progress_ | - | - | - |
+| Documentación Exercise 0 | High | 2025-12-16 | README_EXERCISE_0.md en /doc con pruebas reales |
+| Pruebas manuales del agente | High | 2025-12-16 | Preguntas reales desde UI y terminal |
 
 ---
 
 ## 📌 Pending (Backlog)
 
 ### High Priority
+
 | # | Task | Created | Context |
 |---|------|--------|---------|
-| 1 | xxxx | 2025-12-06 | xxxx |
-| 2 | xxxy | 2025-12-06 | xxxy |
-| 3 | xxxz | 2025-12-06 | xxxz |
+| 1 | Probar preguntas variadas al agente | 2025-12-16 | Direcciones, precios, habitaciones, idiomas |
+| 2 | Probar comportamiento sin algunos ficheros | 2025-12-16 | hotels.json movido / restaurado |
+| 3 | Probar reinicio del contenedor y cache | 2025-12-16 | Ver qué datos se recargan |
+| 4 | Probar aumento del número de hoteles | 2025-12-16 | Detectar límites sin RAG |
+
+---
 
 ### Medium Priority
+
 | # | Task | Created | Context |
 |---|------|--------|---------|
-| - | _No tasks_ | - | - |
+| 1 | Comparar uso de data/hotels vs datos generados | 2025-12-16 | Rutas local vs bookings-db |
+| 2 | Probar preguntas complejas | 2025-12-16 | Agregaciones y comparativas |
+
+---
 
 ### Low Priority
+
 | # | Task | Created | Context |
 |---|------|--------|---------|
-| - | _No tasks_ | - | - |
+| 1 | Anotar limitaciones del enfoque sin RAG | 2025-12-16 | Para justificar Exercise 1 |
 
 ---
 
@@ -37,17 +47,23 @@
 
 | Task | Completed | Commit | Notes |
 |------|-----------|--------|-------|
-| _No tasks completed yet_ | - | - | - |
+| Instalación WSL2 + Docker | 2025-12-16 | — | Entorno Linux operativo |
+| Fork actualizado desde upstream | 2025-12-16 | — | Main alineado |
+| Rama exercise0 creada | 2025-12-16 | — | Trabajo aislado |
+| Exercise 0 funcionando | 2025-12-16 | — | UI + WebSocket + LLM |
+| Tests automáticos Exercise 0 | 2025-12-16 | — | test_exercise_0.py OK |
+| Pruebas manuales del agente | 2025-12-16 | — | UI y terminal |
+| Debug carga de ficheros | 2025-12-16 | — | Verificado origen de datos |
 
 ---
 
-## 🐛 Technical Debt
+## 🐛 Technical Notes / Observations
 
-| Description | Impact | Detected | Status |
-|-------------|--------|----------|--------|
-| _No technical debt registered_ | - | - | - |
+| Description | Detected | Notes |
+|-------------|----------|-------|
+| El agente cachea datos en memoria | 2025-12-16 | Requiere restart para recargar |
+| Todo el contexto se envía al LLM | 2025-12-16 | No escalable sin RAG |
 
----
 
 ## 📝 Usage Notes
 
