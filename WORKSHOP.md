@@ -146,10 +146,10 @@ pip install langchain langchain-google-genai
 export AI_AGENTIC_API_KEY=your-api-key-here
 ```
 
-3. Generate a small sample of hotel data (3 hotels):
+3. Generate a small sample of hotel data (5 hotels -> set param num_of_hotels: 5 at generate_hotels_param.yaml) :
 ```bash
 cd bookings-db
-python src/gen_synthetic_hotels.py --num_hotels 3
+python src/gen_synthetic_hotels.py
 ```
 
 This will create hotel files in `bookings-db/output_files/hotels/` with a small sample.
@@ -336,10 +336,10 @@ pip install langchain langchain-google-genai langchain-community chromadb
 export AI_AGENTIC_API_KEY=your-api-key-here
 ```
 
-3. Generate the full hotel dataset (50 hotels):
+3. Generate the full hotel dataset (50 hotels -> set param num_of_hotels: 50 at generate_hotels_param.yaml):
 ```bash
 cd bookings-db
-python src/gen_synthetic_hotels.py --num_hotels 50
+python src/gen_synthetic_hotels.py
 ```
 
 ### Step 1: Prepare the Data for RAG
