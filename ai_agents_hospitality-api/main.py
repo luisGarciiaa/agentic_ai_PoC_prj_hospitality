@@ -22,6 +22,10 @@ from fastapi.templating import Jinja2Templates
 from util.logger_config import logger
 from util.configuration import settings, PROJECT_ROOT
 
+
+
+
+
 # Import Exercise 0 agent
 EXERCISE_0_AVAILABLE = False
 try:
@@ -42,6 +46,20 @@ except ImportError as e:
 except Exception as e:
     logger.warning(f"Error loading Exercise 0 agent: {e}. Using hardcoded responses.")
     EXERCISE_0_AVAILABLE = False
+
+
+# Import Exercise 1 RAG agent
+EXERCISE_1_AVAILABLE = False
+try:
+    from agents.hotel_rag_agent import handle_hotel_query_rag
+    EXERCISE_1_AVAILABLE = True
+    logger.info("✅ Exercise 1 (RAG) agent loaded successfully")
+except Exception as e:
+    logger.warning(f"Exercise 1 (RAG) not available: {e}")
+    EXERCISE_1_AVAILABLE = False
+
+
+
 
 
 # Hardcoded responses for demo queries
@@ -231,9 +249,26 @@ async def websocket_endpoint(websocket: WebSocket, uuid: str):
                     user_query = message_data.get("content", data)
                 except json.JSONDecodeError:
                     user_query = data
+
+
+                
+                if EXERCISE_1_AVAILABLE:
+                    try:
+                        logger.info(f"Using Exercise 1 (RAG) agent for query: {user_query[:100]}...")
+                        response_content = await handle_hotel_query_rag(user_query)
+                        logger.info(f"✅ Exercise 1 (RAG) response generated successfully for {uuid}")
+                    except Exception as e:
+                        logger.exception("❌ Exercise 1 (RAG) import failed")
+
+                        logger.error(f"❌ Error in Exercise 1 (RAG): {e}", exc_info=True)
+                        logger.warning("Falling back to Exercise 0 / hardcoded")
+                        if EXERCISE_0_AVAILABLE:
+                            response_content = await handle_hotel_query_simple(user_query)
+                        else:
+                            response_content = find_matching_response(user_query)
                 
                 # Get response from Exercise 0 agent or fallback to hardcoded
-                if EXERCISE_0_AVAILABLE:
+                elif EXERCISE_0_AVAILABLE:
                     try:
                         logger.info(f"Using Exercise 0 agent for query: {user_query[:100]}...")
                         response_content = await handle_hotel_query_simple(user_query)
