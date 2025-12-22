@@ -229,7 +229,7 @@ def _retrieve_docs_adaptive(
     if not candidates:
         return [], {"mode": "no_candidates", "candidates": 0}
 
-    # Ordena por distancia ascendente
+    # Ordena por distancia ascendente (mejor primero)
     candidates.sort(key=lambda x: x[1])
 
     best = float(candidates[0][1])
@@ -237,21 +237,62 @@ def _retrieve_docs_adaptive(
 
     chosen: List[Tuple[Document, float]] = []
 
-    # 1) mínimo garantizado
-    for doc, score in candidates[:min_docs]:
-        chosen.append((doc, float(score)))
+    # 🔍 DEBUG: info de todos los candidatos (hasta candidate_pool)
+    debug_candidates = []
 
-    # 2) añade más si pasan el cutoff, hasta max_docs
-    for doc, score in candidates[min_docs:]:
-        if len(chosen) >= max_docs:
-            break
+    # 1) mínimo garantizado
+    for idx, (doc, score) in enumerate(candidates, start=1):
         score = float(score)
+        # Por defecto no elegido; lo marcamos luego
+        debug_entry = {
+            "rank": idx,
+            "score": score,
+            "source": doc.metadata.get("source", "?"),
+            # estos campos los rellenamos después de decidir chosen
+            "chosen": False,
+            "reason": "",
+        }
+        debug_candidates.append((doc, score, debug_entry))
+
+    # Aplicamos la lógica original sobre la lista ordenada
+    for idx, (doc, score, debug_entry) in enumerate(debug_candidates, start=1):
+        score = float(score)
+
+        if idx <= min_docs:
+            chosen.append((doc, score))
+            debug_entry["chosen"] = True
+            debug_entry["reason"] = "within_min_docs"
+            continue
+
+        if len(chosen) >= max_docs:
+            debug_entry["reason"] = "max_docs_reached"
+            break
+
         if score <= cutoff:
             chosen.append((doc, score))
+            debug_entry["chosen"] = True
+            debug_entry["reason"] = "score<=cutoff"
         else:
-            break  # ya va a peor
+            debug_entry["reason"] = "score>cutoff_break"
+            # Como está ordenado, todo lo que venga después será peor
+            break
 
     docs = [d for d, _ in chosen]
+
+    # Formateamos debug compactado (no meter todo el tocho, solo los primeros N)
+    debug_rows = []
+    for doc, score, entry in debug_candidates[:60]:  # recortamos a 60 para no petar logs
+        row = {
+            "rank": entry["rank"],
+            "score": entry["score"],
+            "source": entry["source"],
+            "chosen": entry["chosen"],
+            "reason": entry["reason"],
+            # opcionalmente puedes meter más cosas:
+            # "preview": doc.page_content[:80].replace("\n", " "),
+        }
+        debug_rows.append(row)
+
     dbg = {
         "mode": "adaptive",
         "candidates": len(candidates),
@@ -259,12 +300,14 @@ def _retrieve_docs_adaptive(
         "max_docs": max_docs,
         "candidate_pool": candidate_pool,
         "best_distance": best,
+        "abs_threshold": abs_threshold,
+        "rel_mult": rel_mult,
         "cutoff": cutoff,
         "returned": len(docs),
-        "top10_distances": [s for _, s in chosen[:10]],
-        "sources_top10": [d.metadata.get("source", "?") for d, _ in chosen[:10]],
+        "debug_candidates": debug_rows,
     }
     return docs, dbg
+
 
 
 # --------------------------------------------------
@@ -318,15 +361,27 @@ def answer_hotel_question_rag(question: str, k: int = 5) -> str:
         vs = _get_vectorstore()
 
         # Threshold-based retrieval (min 5, max 50)
+        min_docs = int(os.getenv("RAG_MIN_DOCS", "5"))
+        max_docs = int(os.getenv("RAG_MAX_DOCS", "50"))
+        candidate_pool = int(os.getenv("RAG_CANDIDATE_POOL", "120"))
+        abs_thr = float(os.getenv("RAG_ABS_THRESHOLD", "2.00"))
+        rel_mult = float(os.getenv("RAG_REL_MULT", "2.0"))
+
+        logger.info(
+            f"[RAG] Params: min_docs={min_docs} max_docs={max_docs} "
+            f"candidate_pool={candidate_pool} abs_threshold={abs_thr} rel_mult={rel_mult}"
+        )
+
         docs, dbg = _retrieve_docs_adaptive(
             vs,
             question,
-            min_docs=int(os.getenv("RAG_MIN_DOCS", "5")),
-            max_docs=int(os.getenv("RAG_MAX_DOCS", "50")),
-            candidate_pool=int(os.getenv("RAG_CANDIDATE_POOL", "120")),
-            abs_threshold=float(os.getenv("RAG_ABS_THRESHOLD", "0.90")),
-            rel_mult=float(os.getenv("RAG_REL_MULT", "1.25")),
+            min_docs=min_docs,
+            max_docs=max_docs,
+            candidate_pool=candidate_pool,
+            abs_threshold=abs_thr,
+            rel_mult=rel_mult,
         )
+
 
         logger.info(f"[RAG] Question: {question}")
         logger.info(f"[RAG] Retrieval debug: {dbg}")

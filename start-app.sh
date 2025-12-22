@@ -81,6 +81,18 @@ check_service_health() {
     fi
   fi
  
+
+   # Check Vector DB (Chroma)
+  echo -n "  Checking Vector DB (Chroma) on localhost:8002... "
+  local chroma_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8002/api/v2/heartbeat --connect-timeout 5 --max-time 10)
+  if [[ "$chroma_status" == "200" ]]; then
+    echo "✅ OK (Status: 200)"
+  else
+    echo "❌ Not responding properly (Status: $chroma_status)"
+    all_healthy=false
+  fi
+
+
   # Check PostgreSQL (bookings-db)
   echo -n "  Checking PostgreSQL connection (bookings-db)... "
   if docker exec bookings-db pg_isready -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-hospitality_db}" >/dev/null 2>&1; then
@@ -93,7 +105,7 @@ check_service_health() {
   if [ "$all_healthy" = true ]; then
     echo "✨ All services appear to be healthy!"
     return 0
-  else
+  else 
     echo "⚠️  ERROR: Some services are not responding correctly."
     echo "ℹ️  Shutting down all services..."
     echo "ℹ️  Please check the logs for troubleshooting information."
@@ -297,7 +309,8 @@ fi
 # Don't start the ai_agents api service if the parameter was specified
 if [ "$NO_AI_AGENT" = true ]; then
   echo "The ai_agents api service will not be started."
-  docker compose stop ai_agents api
+  docker compose stop ai_agents_hospitality-api
+
 fi
 
 # Display application URLs and service information
@@ -320,6 +333,11 @@ echo "   Database: ${POSTGRES_DB:-hospitality_db}"
 echo "   User: ${POSTGRES_USER:-postgres}"
 
 echo ""
+echo ""
+echo "🧠 Vector DB (Chroma):"
+echo "   URL (debug): http://localhost:8002"
+echo ""
+
 echo "📊 Container Status:"
 docker compose ps
 

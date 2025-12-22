@@ -60,6 +60,17 @@ except Exception as e:
 
 
 
+# Import Exercise 2 SQL agent
+EXERCISE_2_AVAILABLE = False
+try:
+    from agents.booking_sql_agent import handle_booking_query_sql
+    EXERCISE_2_AVAILABLE = True
+    logger.info("✅ Exercise 2 (SQL) agent loaded successfully")
+except Exception as e:
+    logger.warning(f"Exercise 2 (SQL) agent not available: {e}")
+    EXERCISE_2_AVAILABLE = False
+
+
 
 
 # Hardcoded responses for demo queries
@@ -251,8 +262,42 @@ async def websocket_endpoint(websocket: WebSocket, uuid: str):
                     user_query = data
 
 
+
+
+
+                # 1️⃣ Prioridad: Exercise 2 (SQL Agent)
+                if EXERCISE_2_AVAILABLE:
+                    try:
+                        logger.info(f"Using Exercise 2 (SQL) agent for query: {user_query[:100]}...")
+                        response_content = await handle_booking_query_sql(user_query)
+                        logger.info(f"✅ Exercise 2 (SQL) response generated successfully for {uuid}")
+                    except Exception as e:
+                        logger.error(f"❌ Error in Exercise 2 (SQL) agent: {e}", exc_info=True)
+                        logger.warning("Falling back to Exercise 1 / 0 / hardcoded")
+
+                        # Fallback a Exercise 1 (RAG) si quieres mantenerlo
+                        if EXERCISE_1_AVAILABLE:
+                            try:
+                                logger.info(f"Using Exercise 1 (RAG) agent for query (fallback): {user_query[:100]}...")
+                                response_content = await handle_hotel_query_rag(user_query)
+                                logger.info(f"✅ Exercise 1 (RAG) response generated successfully for {uuid}")
+                            except Exception as e2:
+                                logger.error(f"❌ Error in Exercise 1 (RAG): {e2}", exc_info=True)
+                                logger.warning("Falling back to Exercise 0 / hardcoded")
+                                if EXERCISE_0_AVAILABLE:
+                                    response_content = await handle_hotel_query_simple(user_query)
+                                else:
+                                    response_content = find_matching_response(user_query)
+
+                        # Si no quieres fallback a Exercise 1, comenta el bloque anterior
+                        # y deja solo este fallback:
+                        elif EXERCISE_0_AVAILABLE:
+                            response_content = await handle_hotel_query_simple(user_query)
+                        else:
+                            response_content = find_matching_response(user_query)
+
                 
-                if EXERCISE_1_AVAILABLE:
+                elif EXERCISE_1_AVAILABLE:
                     try:
                         logger.info(f"Using Exercise 1 (RAG) agent for query: {user_query[:100]}...")
                         response_content = await handle_hotel_query_rag(user_query)
