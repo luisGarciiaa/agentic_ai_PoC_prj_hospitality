@@ -43,6 +43,9 @@ except ImportError:
 
 # LLM (RAG still uses an LLM to write the final answer)
 from langchain_google_genai import ChatGoogleGenerativeAI
+# LLM (RAG still uses an LLM to write the final answer)
+from agents.llm_factory import build_llm
+from config.agent_config import get_agent_config
 
 
 # --------------------------------------------------
@@ -319,12 +322,7 @@ def _create_rag_chain():
         return _rag_chain
 
     config = get_agent_config()
-
-    llm = ChatGoogleGenerativeAI(
-        model=config.model,
-        temperature=config.temperature,
-        google_api_key=config.api_key,
-    )
+    llm = build_llm(config)
 
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -347,6 +345,7 @@ Rules:
 
     _rag_chain = prompt | llm
     return _rag_chain
+
 
 
 # --------------------------------------------------
@@ -382,25 +381,63 @@ def answer_hotel_question_rag(question: str, k: int = 5) -> str:
             rel_mult=rel_mult,
         )
 
-
         logger.info(f"[RAG] Question: {question}")
         logger.info(f"[RAG] Retrieval debug: {dbg}")
 
         if not docs:
             return "I couldn't find relevant information in the knowledge base for that question."
 
-#------------------------------------------------------------------------------------------------------------------------------------------------------
-        show_chunks = os.getenv("RAG_LOG_CHUNKS", "0") == "1"
-        if show_chunks:
+        # --------------------------------------------------
+        # Logs de chunks en backend (como ya tenías)
+        # --------------------------------------------------
+        show_chunks_log = os.getenv("RAG_LOG_CHUNKS", "0") == "1"
+        if show_chunks_log:
             for i, d in enumerate(docs, 1):
                 src = d.metadata.get("source", "?")
                 preview = d.page_content[:180].replace("\n", " ")
-                logger.info(f"[RAG] CHUNK {i}/{len(docs)} source={src} preview='{preview}...'")
-#------------------------------------------------------------------------------------------------------------------------------------------------------
+                logger.info(
+                    f"[RAG] CHUNK {i}/{len(docs)} source={src} preview='{preview}...'"
+                )
 
+        # --------------------------------------------------
+        # Debug opcional para la UI: listado de chunks
+        # --------------------------------------------------
+        show_chunks_ui = os.getenv("RAG_DEBUG_UI", "0") == "1"
+        chunks_debug_md = ""
 
+        if show_chunks_ui:
+            # Intentamos usar dbg['debug_candidates'] si existe
+            debug_candidates = dbg.get("debug_candidates", [])
+            lines = []
+            lines.append("```debug")
+            lines.append("[RAG] Retrieved chunks (up to first 20):")
+            lines.append(
+                "rank | score | chosen | reason | source | preview"
+            )
 
+            # Relacionamos candidatos con docs elegidos (por source+preview aprox.)
+            # Para simplificar, listamos directamente los candidatos debug
+            for row in debug_candidates[:20]:
+                rank = row.get("rank")
+                score = row.get("score")
+                chosen = row.get("chosen")
+                reason = row.get("reason")
+                source = row.get("source", "?")
+                # El preview no viene en dbg; lo reconstruimos aproximado si queremos,
+                # pero para no complicar, solo mostramos source y flags.
+                lines.append(
+                    f"{rank} | {score:.4f} | {chosen} | {reason} | {source}"
+                )
 
+            if not debug_candidates:
+                lines.append("(no debug_candidates info available)")
+
+            lines.append("```")
+            chunks_debug_md = "\n".join(lines)
+
+        # --------------------------------------------------
+        # Construir contexto y llamar al LLM
+        # --------------------------------------------------
         context = "\n\n---\n\n".join(
             f"[source={d.metadata.get('source', '?')}] {d.page_content}"
             for d in docs
@@ -408,7 +445,14 @@ def answer_hotel_question_rag(question: str, k: int = 5) -> str:
 
         chain = _create_rag_chain()
         response = chain.invoke({"context": context, "question": question})
-        return getattr(response, "content", str(response))
+        answer_text = getattr(response, "content", str(response))
+
+        # Si queremos mostrar también los chunks en la UI, los pegamos delante
+        if show_chunks_ui and chunks_debug_md:
+            return f"{chunks_debug_md}\n\n{answer_text}"
+
+        return answer_text
+
 
     except FileNotFoundError as e:
         logger.error(f"[RAG] {e}")

@@ -27,13 +27,21 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from util.logger_config import logger
 from config.agent_config import get_agent_config
 
+from langchain_community.utilities import SQLDatabase
+from langchain_core.prompts import ChatPromptTemplate
+
+from util.logger_config import logger
+from config.agent_config import get_agent_config
+from agents.llm_factory import build_llm
+
 
 # --------------------------------------------------
 # Database connection
 # --------------------------------------------------
 
 _DB: Optional[SQLDatabase] = None
-_LLM: Optional[ChatGoogleGenerativeAI] = None
+#_LLM: Optional[ChatGoogleGenerativeAI] = None
+_LLM = None  # tipo genérico, vale para OpenAI o Gemini
 _SQL_GEN_CHAIN = None
 _SQL_ANSWER_CHAIN = None
 
@@ -55,7 +63,7 @@ def _get_db() -> SQLDatabase:
 
 
 
-def _get_llm() -> ChatGoogleGenerativeAI:
+def _get_llm():
     global _LLM
     if _LLM is not None:
         return _LLM
@@ -65,12 +73,9 @@ def _get_llm() -> ChatGoogleGenerativeAI:
         f"[SQL] Using LLM provider={config.provider} model={config.model} "
         f"temperature={config.temperature}"
     )
-    _LLM = ChatGoogleGenerativeAI(
-        model=config.model,
-        temperature=config.temperature,
-        google_api_key=config.api_key,
-    )
+    _LLM = build_llm(config)
     return _LLM
+
 
 
 # --------------------------------------------------
@@ -93,18 +98,22 @@ def _get_sql_generation_chain():
 Table: bookings
 
 Columns:
-- id (INTEGER): Unique booking identifier
+- id (INTEGER): Unique booking identifier (primary key)
 - hotel_name (VARCHAR): Hotel name
 - room_id (VARCHAR): Room identifier
 - room_type (VARCHAR): Single, Double, Triple
 - room_category (VARCHAR): Standard, Premium
 - check_in_date (DATE): Check-in date
 - check_out_date (DATE): Check-out date
-- total_nights (INTEGER): Number of nights
+- total_nights (INTEGER): Number of nights between check-in and check-out
 - guest_first_name (VARCHAR): Guest first name
 - guest_last_name (VARCHAR): Guest last name
+- guest_email (VARCHAR): Guest email address
+- guest_phone (VARCHAR): Guest phone number
 - guest_country (VARCHAR): Guest's country
 - guest_city (VARCHAR): Guest's city
+- guest_address (TEXT): Guest full address
+- guest_zip_code (VARCHAR): Guest ZIP / postal code
 - meal_plan (VARCHAR): Room Only, B&B, Half Board, etc.
 - total_price (DECIMAL): Total booking price (EUR)
 
@@ -118,6 +127,7 @@ Analytics definitions:
 - Occupancy Rate = (Total Occupied Nights / Total Available Room-Nights) * 100
 - RevPAR = Total Revenue / Total Available Room-Nights
 """
+
 
     sql_gen_prompt = ChatPromptTemplate.from_messages(
         [

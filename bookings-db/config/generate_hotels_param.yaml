@@ -1,4 +1,4 @@
-num_of_hotels: 5
+num_of_hotels: 50
 process:
   output_path_hotels: output_files/hotels/
   output_path_bookings: output_files/bookings/

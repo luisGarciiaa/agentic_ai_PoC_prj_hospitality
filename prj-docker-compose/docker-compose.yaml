@@ -86,6 +86,9 @@ services:
     command: ["/app/db/init-db.sh"]
     env_file:
       - .env
+    volumes:
+      #  aquí montamos hotels.json dentro del loader
+      - ../bookings-db/output_files/hotels:/app/data/hotels:ro
 
 volumes:
   bookings_postgresql-db:
